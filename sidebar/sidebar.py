@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QButtonGroup, QSizePolicy)
 from PySide6.QtCore import Qt
 
+from logo_overlay import LogoOverlay
+
 class SideBar(QWidget):
     def __init__(self):
         super().__init__()
-        
+        self.logo = LogoOverlay(logo_path="hospital_logo_white_bg.png")
         
         # self.sidebar = QWidget()
         self.setFixedWidth(250)
@@ -38,14 +40,7 @@ class SideBar(QWidget):
         content = QWidget()
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(10, 20, 10, 20)
-        
-        # layout = QVBoxLayout(self)
-        # layout.setSpacing(0)
-        # layout.setContentsMargins(10, 20, 10, 20)
-        title = QLabel("CLINIC\nMANAGEMENT")
-        title.setStyleSheet("color: white; font-size: 16px; font-weight: bold; padding: 20px;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        content_layout.addWidget(title)
+        content_layout.addWidget(self.logo)
 
         self.btn_patients = QPushButton("🧑 Patient Details")
         self.btn_appointments = QPushButton("📅 Appointments")

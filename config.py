@@ -1,3 +1,3 @@
 config = {
-    "title": "Patient Management System" 
+    "title": "Sri Vishwatitiksha Hospital and Panchkarma Center" 
 }

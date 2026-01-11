@@ -38,10 +38,8 @@ from database.therapy_repo import TherapyRepository
 class PatientManagementSystem(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.db = DatabaseManager()
         folder_name = create_dir()
         self.conn = DatabaseConnection(f'C:\\ProgramData\\{folder_name}\\patients.db').get_connection()
-        # self.conn_appt = DatabaseConnection(f'C:\\ProgramData\\{folder_name}\\appointments.db').get_connection()
         SchemaManager(self.conn).create_tables()
         self.patient_repo = PatientRepository(self.conn)
         self.appointment_repo = AppointmentRepository(self.conn)
@@ -49,8 +47,6 @@ class PatientManagementSystem(QMainWindow):
         self.therapy_repo = TherapyRepository(self.conn)
         self.search_result_count = 0
         self.setWindowTitle(config['title'])
-        # self.search_layout = SearchLayout()
-        # self.table_widget = TableWidget()
         self.btn_layout = ButtonsLayout()
         self.sidebar = SideBar()
         self.patient_page = PatientPage(self.btn_layout)
@@ -58,9 +54,9 @@ class PatientManagementSystem(QMainWindow):
         self.load_patients()
         
 
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-    #     self.watermark.setGeometry(self.centralWidget().rect())
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.watermark.setGeometry(self.centralWidget().rect())
 
 
     def setup_ui(self):
@@ -68,37 +64,6 @@ class PatientManagementSystem(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
         main_layout.setContentsMargins(5,5,5,5)
-
-        # sidebar = QFrame()
-        # sidebar.setFixedWidth(220)
-        # sidebar.setStyleSheet("""
-        #     QFrame {
-        #         background-color: #1f2937;
-        #     }
-        #     QPushButton {
-        #         color: white;
-        #         border: none;
-        #         padding: 12px;
-        #         text-align: left;
-        #         font-size: 14px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #374151;
-        #     }
-        #     QPushButton:checked {
-        #         background-color: #2563eb;
-        #         font-weight: bold;
-        #     }
-        # """)
-        # sidebar_layout = QVBoxLayout(sidebar)
-        # sidebar_layout.setSpacing(5)
-        # sidebar_layout.setContentsMargins(10, 20, 10, 20)
-        # title = QLabel("Clinic Panel")
-        # title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
-        # sidebar_layout.addWidget(title)
-        # sidebar_layout.addSpacing(20)
-        # sidebar_layout.addStretch()
-        # main_layout.addWidget(sidebar)
 
         sidebar = QWidget()
         sidebar.setFixedWidth(250)
@@ -126,37 +91,8 @@ class PatientManagementSystem(QMainWindow):
         """)
 
         sidebar_layout = QVBoxLayout(sidebar)
-        # sidebar_layout.setSpacing(0)
-        # sidebar_layout.setContentsMargins(10, 20, 10, 20)
-        
-        # Logo/Title
-        # title = QLabel("CLINIC\nMANAGEMENT")
-        # title.setStyleSheet("color: white; font-size: 16px; font-weight: bold; padding: 20px;")
-        # title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # sidebar_layout.addWidget(title)
-
-        # self.btn_patients = QPushButton("🧑 Patient Details")
-        # self.btn_appointments = QPushButton("📅 Appointments")
-        # self.btn_invoices = QPushButton("💳 Invoice Generation")
-        # self.nav_group = QButtonGroup(self)
-        # self.nav_group.setExclusive(True)
-
-        # for btn in (self.btn_patients, self.btn_appointments, self.btn_invoices):
-        #     btn.setCheckable(True)
-        #     self.nav_group.addButton(btn)
-        #     sidebar_layout.addWidget(btn)
-
-        # sidebar_layout.addStretch()
-        print('side bar: ', self.sidebar)
-        
+                
         main_layout.addWidget(self.sidebar)
-
-        # content_layout = QVBoxLayout()
-        # Header
-        # header = QLabel("Patient Management System")
-        # header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        # header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # content_layout.addWidget(header)
 
         self.patient_page.btn_layout.add_btn.clicked.connect(self.add_patient)
         self.patient_page.btn_layout.edit_btn.clicked.connect(self.edit_patient)
@@ -171,50 +107,18 @@ class PatientManagementSystem(QMainWindow):
         
         
 
-        # self.search_layout.layout.addStretch()
-        # content_layout.addLayout(self.search_layout.layout)
-        
-        # content_layout.addWidget(self.table_widget.table)
-        
-        # # Buttons
-        # btn_layout = QHBoxLayout()
-        
-        # add_btn = QPushButton("Add Patient")
-        # add_btn.clicked.connect(self.add_patient)
-        # btn_layout.addWidget(add_btn)
-        
-        # edit_btn = QPushButton("Edit Patient")
-        # edit_btn.clicked.connect(self.edit_patient)
-        # btn_layout.addWidget(edit_btn)
-        
-        # delete_btn = QPushButton("Delete Patient")
-        # delete_btn.clicked.connect(self.delete_patient)
-        # btn_layout.addWidget(delete_btn)
-        
-        # btn_layout.addStretch()
-        # self.row_count_lable = QLabel("Total: 0")
-        # font = self.row_count_lable.font()
-        # font.setBold(True)
-        # self.row_count_lable.setFont(font)
-        
-        # self.row_count_lable.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        # btn_layout.addWidget(self.row_count_lable)
-        # content_layout.addLayout(self.btn_layout.layout)
-        
+                
         main_layout.addWidget(self.stack)
 
         self.sidebar.btn_patients.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.sidebar.btn_appointments.clicked.connect(lambda: self.stack.setCurrentIndex(1))
-        # main_layout.setStretch(0, 0)  # sidebar
-        # main_layout.setStretch(1, 1)  
-        print('central_widget: ',central_widget.rect() )
+
         self.watermark = WatermarkWidget(central_widget)
         self.watermark.setGeometry(central_widget.rect())
         self.watermark.raise_()
 
     def load_patients(self):
-        patients = self.db.get_all_patients()
-        # self.row_count_lable.setText()
+        patients = self.patient_repo.get_all()
         self.patient_page.btn_layout.row_count_lable.setText(f"Total: {len(patients)}")
         self.populate_table(patients)
     
@@ -441,7 +345,7 @@ class PatientManagementSystem(QMainWindow):
             )
             
             if reply == QMessageBox.StandardButton.Yes:
-                self.db.delete_patient(patient_id)
+                self.patient_repo.delete_patient(patient_id)
                 self.load_patients()
                 QMessageBox.information(self, "Success", "Patient deleted successfully!")
         else:
@@ -452,7 +356,7 @@ class PatientManagementSystem(QMainWindow):
         value = self.patient_page.search_layout.search_input.text()
         
         if value:
-            patients = self.db.search_patients(criteria, value)
+            patients = self.patient_repo.search_patients(criteria, value)
             row_count = len(patients)
 
             self.populate_table(patients)
