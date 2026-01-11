@@ -35,10 +35,12 @@ class AppointmentWidget(QGroupBox):
         self.therapy_container = QVBoxLayout()
 
         therapies = [
-            "Vamana", "Virechana", "Basti", "Nasya",
-            "Raktamokshana", "Shirodhara", "Abhyanga",
-            "Swedana", "Pizhichil", "Udvartana",
-            "Kati Basti", "Netra Tarpana"
+            "Vamana", "Virechan", "Basti", "Nasya",
+            "Raktamokshan", "Abhyang",
+            "Swedana", "Shirodhara", 
+            "Kati Basti", "Janu Basti", "Hridya Basti", 
+            "Manya Basti", "Merudand Basti", "Udvartana", 
+            "Netra Tarapana", "Agnikarma", "Viddhakarma"
         ]
 
         self.therapy_checks = []
