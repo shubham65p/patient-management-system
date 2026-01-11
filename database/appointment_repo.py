@@ -1,4 +1,7 @@
 # appointment_repo.py
+import logging
+
+logger=logging.getLogger(__name__)
 class AppointmentRepository:
     def __init__(self, conn):
         self.conn = conn
@@ -21,3 +24,14 @@ class AppointmentRepository:
             Where patient_id = ?
         """, (id,))
         return cursor.fetchall()
+    
+    def delete_by_patient_id(self, id):
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+            DELETE appointments
+            where patient_id = ?
+            """,(id,))
+        except Exception as e:
+            logger.error(f"Error deleting appointments : {e}")
+        

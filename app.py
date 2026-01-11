@@ -9,7 +9,9 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QFrame, QButtonGroup, QStackedWidget)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
+from pydantic import ValidationError
 
+from data_validation import Patient
 from database_manager import DatabaseManager
 from patient_dialog import PatientDialog
 from config import config
@@ -132,91 +134,203 @@ class PatientManagementSystem(QMainWindow):
         if dialog.exec():
             data = dialog.get_data()
             print('dataaaaaaaaaaa: ', data)
-            if data:  # Check if name is provided
-                patient_id = self.patient_repo.add(data)
-                if (data['fees']['data']) != 0:
-                    for appt in data['fees']['data']:
-                        appt_id = self.appointment_repo.add(patient_id, appt['appointment'], appt['consultation'])
-                        for medicine in appt['medicines']:
-                            self.medicine_repo.add(appt_id, medicine['name'], medicine['fee'])
-                        
-                        for therapy in appt['therapies']:
-                            self.therapy_repo.add(appt_id, therapy['name'], therapy['fee'])
-                self.load_patients()
-                QMessageBox.information(self, "Success", "Patient added successfully!")
-            else:
-                QMessageBox.warning(self, "Error", "Patient name is required!")
-    
+
+            try:
+                patient = Patient(**data)
+            except ValidationError as e:
+                print("Data is Ivalid : {e}")
+                QMessageBox.warning(
+                    self,
+                    "Validation Error",
+                    e.json(indent=2)
+                )
+                return
+            
+            patient_id = self.patient_repo.add(patient)
+
+            for ap in patient.fees.data:
+                appt_id = self.appointment_repo.add(
+                    patient_id, 
+                    ap.appointment, 
+                    ap.consultation
+                    )
+                
+                for med in ap.medicines:
+                    self.medicine_repo.add(
+                        appt_id, 
+                        med.name,
+                        med.fee
+                        )
+                    
+                for the in ap.therapies:
+                    self.therapy_repo.add(
+                        appt_id, 
+                        the.name,
+                        the.fee
+                        )
+            self.load_patients()
+            QMessageBox.information(self, "Success", "Patient added successfully!")
+        else:
+            QMessageBox.warning(self, "Error", "Patient name is required!")
+
     def edit_patient(self):
         current_row = self.patient_page.table_widget.table.currentRow()
-        print('current row: ', current_row)
-        if current_row >= 0:
-            item = self.patient_page.table_widget.table.item(current_row, 0)
-            if item is None:
-                QMessageBox.warning(self, "Error", "Invalid patient data!")
-            print('item: ', item.text()) # type: ignore
-            patient_id = int(item.text()) # type: ignore
-            # patient_id = int(self.table.item(current_row, 0).text())
-            patient_data = [self.patient_page.table_widget.table.item(current_row, col).text()  # type: ignore
-                          for col in range(self.patient_page.table_widget.table.columnCount())]
-            print('patient_data: ', patient_data)
-            # fees data:  [{'appointment': 1, 'consultation': 500, 'medicines': [{'name': 'abc', 'fee': 100}, {'name': 'def', 'fee': 200}, {'name': 'ghi', 'fee': 300}], 'therapies': [{'name': 'Virechana', 'fee': 0}, {'name': 'Nasya', 'fee': 0}]}, {'appointment': 2, 'consultation': 250, 'medicines': [{'name': 'pqr', 'fee': 400}, {'name': 'stu', 'fee': 500}], 'therapies': [{'name': 'Vamana', 'fee': 0}, {'name': 'Virechana', 'fee': 0}, {'name': 'Basti', 'fee': 0}, {'name': 'Nasya', 'fee': 0}, {'name': 'Raktamokshana', 'fee': 0}]}]
-            appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
-            print('edit appointments: ', appointments)
-            fees_data = []
-            
-            for appt in appointments:
-                ap = { 
-                }
-                ap['consultation'] = appt[3]
-                ap['appointment'] = appt[2]
-                ap['medicines'] = []
-                ap['therapies'] = []
-                print('appttt: ',appt)
-                medicines = self.medicine_repo.get_medicine_by_appointment_id(appt[0])
-                for med in medicines:
-                    m = {
-                        'name': med[2],
-                        'fee': med[3]
-                    }
-                    ap['medicines'].append(m)
-                print('medicines: ', medicines)
-                therapies = self.therapy_repo.get_therapy_by_appointment_id(appt[0])
-                for th in therapies:
-                    t = {
-                        'name': th[2],
-                        'fee': th[3]
-                    }
-                    ap['therapies'].append(t)
-                print('therapies: ', therapies)
-                fees_data.append(ap)
-            print('feeeee data: ', fees_data)
-            dialog = PatientDialog(self, patient_data, fees_data)
-            
-            if dialog.exec():
-                data = dialog.get_data()
-                print('edited data: ', data)
-                if data:
-                    self.patient_repo.update(patient_id, data)
-                    if (data['fees']['data']) != 0:
-                        for appt in data['fees']['data']:
-                            # appointment_data = (
-                            #     patient_id,
-                            #     appt['appointment'],
-                            #     appt['consultation']
-                            # )
-                            appt_id = self.appointment_repo.add(patient_id, appt['appointment'], appt['consultation'])
-                            for medicine in appt['medicines']:
-                                self.medicine_repo.add(appt_id, medicine['name'], medicine['fee'])
-                            
-                            for therapy in appt['therapies']:
-                                self.therapy_repo.add(appt_id, therapy['name'], therapy['fee'])
-                    self.load_patients()
-                    QMessageBox.information(self, "Success", "Patient updated successfully!")
-                else:
-                    QMessageBox.warning(self, "Error", "Patient name is required!")
-        else:
+
+        if current_row < 0:
             QMessageBox.warning(self, "Warning", "Please select a patient to edit!")
+            return
+
+        item = self.patient_page.table_widget.table.item(current_row, 0)
+        if item is None:
+            QMessageBox.warning(self, "Error", "Invalid patient data!")
+            return
+
+        patient_id = int(item.text())
+
+        patient_data = [
+            self.patient_page.table_widget.table.item(current_row, col).text()
+            for col in range(self.patient_page.table_widget.table.columnCount())
+        ]
+
+        appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
+
+        fees_data = []
+
+        for appt in appointments:
+            ap = {
+                "appointment": appt[2],     
+                "consultation": appt[3],
+                "medicines": [],
+                "therapies": []
+            }
+
+            medicines = self.medicine_repo.get_medicine_by_appointment_id(appt[0])
+            for med in medicines:
+                ap["medicines"].append({
+                    "name": med[2],
+                    "fee": med[3]
+                })
+
+            therapies = self.therapy_repo.get_therapy_by_appointment_id(appt[0])
+            for th in therapies:
+                ap["therapies"].append({
+                    "name": th[2],
+                    "fee": th[3]
+                })
+
+            fees_data.append(ap)
+
+        dialog = PatientDialog(self, patient_data, fees_data)
+
+        if not dialog.exec():
+            return
+
+        raw_data = dialog.get_data()
+        if not raw_data:
+            QMessageBox.warning(self, "Error", "Patient name is required!")
+            return
+        
+        try:
+            patient = Patient(**raw_data)
+        except ValidationError as e:
+            QMessageBox.warning(
+                self,
+                "Validation Error",
+                e.json(indent=2)
+            )
+            return
+
+
+        self.patient_repo.update(patient_id, patient)
+
+        # self.appointment_repo.delete_by_patient_id(patient_id)
+
+        for appt in patient.fees.data:
+            appt_id = self.appointment_repo.add(
+                patient_id,
+                appt.appointment,
+                appt.consultation
+            )
+
+            for med in appt.medicines:
+                self.medicine_repo.add(appt_id, med.name, med.fee)
+
+            for th in appt.therapies:
+                self.therapy_repo.add(appt_id, th.name, th.fee)
+
+        self.load_patients()
+        QMessageBox.information(self, "Success", "Patient updated successfully!")
+
+    # def edit_patient(self):
+    #     current_row = self.patient_page.table_widget.table.currentRow()
+    #     print('current row: ', current_row)
+    #     if current_row >= 0:
+    #         item = self.patient_page.table_widget.table.item(current_row, 0)
+    #         if item is None:
+    #             QMessageBox.warning(self, "Error", "Invalid patient data!")
+    #         print('item: ', item.text()) # type: ignore
+    #         patient_id = int(item.text()) # type: ignore
+    #         # patient_id = int(self.table.item(current_row, 0).text())
+    #         patient_data = [self.patient_page.table_widget.table.item(current_row, col).text()  # type: ignore
+    #                       for col in range(self.patient_page.table_widget.table.columnCount())]
+    #         print('patient_data: ', patient_data)
+    #         # fees data:  [{'appointment': 1, 'consultation': 500, 'medicines': [{'name': 'abc', 'fee': 100}, {'name': 'def', 'fee': 200}, {'name': 'ghi', 'fee': 300}], 'therapies': [{'name': 'Virechana', 'fee': 0}, {'name': 'Nasya', 'fee': 0}]}, {'appointment': 2, 'consultation': 250, 'medicines': [{'name': 'pqr', 'fee': 400}, {'name': 'stu', 'fee': 500}], 'therapies': [{'name': 'Vamana', 'fee': 0}, {'name': 'Virechana', 'fee': 0}, {'name': 'Basti', 'fee': 0}, {'name': 'Nasya', 'fee': 0}, {'name': 'Raktamokshana', 'fee': 0}]}]
+    #         appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
+    #         print('edit appointments: ', appointments)
+    #         fees_data = []
+            
+    #         for appt in appointments:
+    #             ap = { 
+    #             }
+    #             ap['consultation'] = appt[3]
+    #             ap['appointment'] = appt[2]
+    #             ap['medicines'] = []
+    #             ap['therapies'] = []
+    #             print('appttt: ',appt)
+    #             medicines = self.medicine_repo.get_medicine_by_appointment_id(appt[0])
+    #             for med in medicines:
+    #                 m = {
+    #                     'name': med[2],
+    #                     'fee': med[3]
+    #                 }
+    #                 ap['medicines'].append(m)
+    #             print('medicines: ', medicines)
+    #             therapies = self.therapy_repo.get_therapy_by_appointment_id(appt[0])
+    #             for th in therapies:
+    #                 t = {
+    #                     'name': th[2],
+    #                     'fee': th[3]
+    #                 }
+    #                 ap['therapies'].append(t)
+    #             print('therapies: ', therapies)
+    #             fees_data.append(ap)
+    #         print('feeeee data: ', fees_data)
+    #         dialog = PatientDialog(self, patient_data, fees_data)
+            
+    #         if dialog.exec():
+    #             data = dialog.get_data()
+    #             print('edited data: ', data)
+    #             if data:
+    #                 self.patient_repo.update(patient_id, data)
+    #                 if (data['fees']['data']) != 0:
+    #                     for appt in data['fees']['data']:
+    #                         # appointment_data = (
+    #                         #     patient_id,
+    #                         #     appt['appointment'],
+    #                         #     appt['consultation']
+    #                         # )
+    #                         appt_id = self.appointment_repo.add(patient_id, appt['appointment'], appt['consultation'])
+    #                         for medicine in appt['medicines']:
+    #                             self.medicine_repo.add(appt_id, medicine['name'], medicine['fee'])
+                            
+    #                         for therapy in appt['therapies']:
+    #                             self.therapy_repo.add(appt_id, therapy['name'], therapy['fee'])
+    #                 self.load_patients()
+    #                 QMessageBox.information(self, "Success", "Patient updated successfully!")
+    #             else:
+    #                 QMessageBox.warning(self, "Error", "Patient name is required!")
+    #     else:
+    #         QMessageBox.warning(self, "Warning", "Please select a patient to edit!")
     
     def delete_patient(self):
         current_row = self.patient_page.table_widget.table.currentRow()
