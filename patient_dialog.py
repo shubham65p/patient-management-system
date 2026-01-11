@@ -24,8 +24,6 @@ class PatientDialog(QDialog):
         if patient_data:
             self.populate_data()
         
-        
-    
     def move_to_top(self):
         screen = QGuiApplication.primaryScreen().availableGeometry()
         x = (screen.width() - self.width()) // 2
