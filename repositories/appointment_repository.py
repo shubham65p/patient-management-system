@@ -1,34 +1,35 @@
 # appointment_repo.py
 import logging
+from database.db_protocol import Database
 
 logger=logging.getLogger(__name__)
 class AppointmentRepository:
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self, db: Database):
+        self.db = db
 
     def add(self, patient_id, appointment_no, consultation_fee):
-        cursor = self.conn.cursor()
-        cursor.execute("""
+        # cursor = self.conn.cursor()
+        self.db.execute("""
             INSERT INTO appointments
             (patient_id, appointment_no, consultation_fee)
             VALUES (?, ?, ?)
         """, (patient_id, appointment_no, consultation_fee))
-        self.conn.commit()
-        return cursor.lastrowid
+        self.db.commit()
+        return self.db.lastrowid
     
     
     def get_appointment_by_patient_id(self, id):
-        cursor = self.conn.cursor()
-        cursor.execute("""
+        # cursor = self.conn.cursor()
+        self.db.execute("""
             Select * from appointments
             Where patient_id = ?
         """, (id,))
-        return cursor.fetchall()
+        return self.db.fetchall()
     
     def delete_by_patient_id(self, id):
-        cursor = self.conn.cursor()
+        # cursor = self.conn.cursor()
         try:
-            cursor.execute("""
+            self.db.execute("""
             DELETE appointments
             where patient_id = ?
             """,(id,))

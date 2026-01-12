@@ -75,6 +75,7 @@ class PatientDialog(QDialog):
         self.address_input.setFixedHeight(70)
 
         
+        
         address_group = QGroupBox("Address")
         address_layout = QVBoxLayout()
         address_layout.addWidget(self.address_input)

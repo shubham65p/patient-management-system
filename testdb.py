@@ -1,4 +1,4 @@
-from database.connection import DatabaseConnection
+from database.SQLiteDB.connection import DatabaseConnection
 
 conn = DatabaseConnection(f'C:\\ProgramData\\Patient Management System database\\patients.db').get_connection()
 

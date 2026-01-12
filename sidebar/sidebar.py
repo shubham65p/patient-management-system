@@ -14,7 +14,7 @@ class SideBar(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setStyleSheet("""
             QWidget {
-                background-color: #2c3e50;
+                background-color: #061E29;
                 
                 border-radius: 5px;
             }
