@@ -1,2 +1,0 @@
-// run this to create executable file (.exe)
-pyinstaller --onefile --windowed  app.py 
