@@ -8,13 +8,13 @@ class ButtonsLayout(QWidget):
         super().__init__()
         
         layout = QHBoxLayout(self)
-        self.add_btn = CustomButton("Add Patient", "#16a34a")
+        self.add_btn = CustomButton("Add Patient", "#2F6690")
         layout.addWidget(self.add_btn)
 
-        self.edit_btn = CustomButton("Edit Patient", "#2563eb")
+        self.edit_btn = CustomButton("Edit Patient", "#2F6690")
         layout.addWidget(self.edit_btn)
 
-        self.delete_btn = CustomButton("Delete Patient", "#dc2626")
+        self.delete_btn = CustomButton("Delete Patient", "#2F6690")
         layout.addWidget(self.delete_btn)
 
         layout.addStretch()

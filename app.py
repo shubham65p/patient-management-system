@@ -12,16 +12,12 @@ from PySide6.QtGui import QFont
 from pydantic import ValidationError
 
 from data_validation import Patient
-from database_manager import DatabaseManager
 from patient_dialog import PatientDialog
 from config import config
 
-from PySide6.QtGui import QFont, QPainter, QColor, QPen
 from services.patient_search_service import PatientSearchService
 from watermark_widget import WatermarkWidget
 
-# from layouts.search_layout import SearchLayout
-# from layouts.table_widget import TableWidget
 from layouts.buttons_layout import ButtonsLayout
 
 from pages.patient_page import PatientPage
@@ -36,21 +32,27 @@ from repositories.appointment_repository import AppointmentRepository
 from repositories.medicine_repository import MedicineRepository
 from repositories.therapy_repository import TherapyRepository
 from button.custom_button import CustomButton
-from database.db_protocol import Database
 from database.SQLiteDB.sqlite_database import SQLiteDatabase
+from bootstrap import create_database
+from services.patient_service import PatientService
+
 
 class PatientManagementSystem(QMainWindow):
     def __init__(self):
         super().__init__()
-        folder_name = create_dir()
-        self.conn = SQLiteConnection(f'C:\\ProgramData\\{folder_name}\\patients.db').get_connection()
-        db = SQLiteDatabase(self.conn)
-        SchemaManager(db).create_tables()
+        # folder_name = create_dir()
+        # self.conn = SQLiteConnection(f'C:\\ProgramData\\{folder_name}\\{config['patients']}.db').get_connection()
+        # db = SQLiteDatabase(self.conn)
+        # SchemaManager(db).create_tables()
+        db = create_database()
         
+
         self.patient_repo = PatientRepository(db)
         self.appointment_repo = AppointmentRepository(db)
         self.medicine_repo = MedicineRepository(db)
         self.therapy_repo = TherapyRepository(db)
+
+        self.patient_service = PatientService(self.patient_repo, self.appointment_repo, self.medicine_repo, self.therapy_repo)
         self.search_result_count = 0
         self.setWindowTitle(config['title'])
         self.btn_layout = ButtonsLayout()
@@ -63,62 +65,37 @@ class PatientManagementSystem(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.watermark.setGeometry(self.centralWidget().rect())
-
+    
 
     def setup_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(5,5,5,5)
 
-        sidebar = QWidget()
-        sidebar.setFixedWidth(250)
-        sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #2c3e50;
-                background-color: green;
-                border-radius: 5px;
-            }
-            QPushButton {
-                background-color: #34495e;
-                color: white;
-                border: none;
-                border-radius: 0;
-                padding: 15px;
-                text-align: left;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #3498db;
-            }
-            QPushButton:checked {
-                background-color: #2980b9;
-            }
-        """)
+        # Set margin from all side of screen
+        main_layout.setContentsMargins(3,3,3,3)
 
-        sidebar_layout = QVBoxLayout(sidebar)
-                
+        # Adding sidebar    
         main_layout.addWidget(self.sidebar)
 
-        self.patient_page.btn_layout.add_btn.clicked.connect(self.add_patient)
-        self.patient_page.btn_layout.edit_btn.clicked.connect(self.edit_patient)
-        self.patient_page.btn_layout.delete_btn.clicked.connect(self.delete_patient)
-
-        self.patient_page.search_layout.search_btn.clicked.connect(self.search_patients)
-        self.patient_page.search_layout.clear_btn.clicked.connect(self.load_patients)
-
+        # Adding pages
         self.stack = QStackedWidget()
         self.stack.addWidget(self.patient_page)
         self.stack.addWidget(AppointmentPage())
-        
-        
-
-                
         main_layout.addWidget(self.stack)
-
         self.sidebar.btn_patients.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.sidebar.btn_appointments.clicked.connect(lambda: self.stack.setCurrentIndex(1))
 
+        # Connecting buttons
+        self.patient_page.btn_layout.add_btn.clicked.connect(self.add_patient)
+        self.patient_page.btn_layout.edit_btn.clicked.connect(self.edit_patient)
+        self.patient_page.btn_layout.delete_btn.clicked.connect(self.delete_patient)
+        self.patient_page.search_layout.search_btn.clicked.connect(self.search_patients)
+        self.patient_page.search_layout.clear_btn.clicked.connect(self.load_patients)
+        
+        
+
+        # Adding water mark
         self.watermark = WatermarkWidget(central_widget)
         self.watermark.setGeometry(central_widget.rect())
         self.watermark.raise_()
@@ -134,7 +111,7 @@ class PatientManagementSystem(QMainWindow):
     def populate_table(self, patients):
         self.patient_page.table_widget.table.setRowCount(len(patients))
         for row, patient in enumerate(patients):
-            view_history_btn = CustomButton("View", '#1D546D', margin='10px')
+            view_history_btn = CustomButton("View", '#2F6690', margin='10px')
             view_history_btn.clicked.connect(self.view_history)
             self.patient_page.table_widget.table.setCellWidget(row, 0, view_history_btn)
             for col, value in enumerate(patient, 1):
@@ -142,56 +119,61 @@ class PatientManagementSystem(QMainWindow):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.patient_page.table_widget.table.setItem(row, col, item)
     
-    def add_patient(self):
-        print('add button clicked')
-        dialog = PatientDialog(self)
-        if dialog.exec():
-            data = dialog.get_data()
-            print('dataaaaaaaaaaa: ', data)
+    # def add_patient(self):
+    #     print('add button clicked')
+    #     dialog = PatientDialog(self)
+    #     if dialog.exec():
+    #         data = dialog.get_data()
+    #         print('dataaaaaaaaaaa: ', data)
 
-            try:
-                patient = Patient(**data)
-            except ValidationError as e:
-                print("Data is Ivalid : {e}")
-                QMessageBox.warning(
-                    self,
-                    "Validation Error",
-                    e.json(indent=2)
-                )
-                return
+    #         try:
+    #             patient = Patient(**data)
+    #         except ValidationError as e:
+    #             print("Data is Ivalid : {e}")
+    #             QMessageBox.warning(
+    #                 self,
+    #                 "Validation Error",
+    #                 e.json(indent=2)
+    #             )
+    #             return
             
-            patient_id = self.patient_repo.add(patient)
+    #         patient_id = self.patient_repo.add(patient)
 
-            for ap in patient.fees.data:
-                appt_id = self.appointment_repo.add(
-                    patient_id, 
-                    ap.appointment, 
-                    ap.consultation
-                    )
+    #         for ap in patient.fees.data:
+    #             appt_id = self.appointment_repo.add(patient_id, ap.appointment, ap.consultation)
                 
-                for med in ap.medicines:
-                    self.medicine_repo.add(
-                        appt_id, 
-                        med.name,
-                        med.fee
-                        )
+    #             for med in ap.medicines:
+    #                 self.medicine_repo.add(appt_id, med.name, med.fee)
                     
-                for the in ap.therapies:
-                    self.therapy_repo.add(
-                        appt_id, 
-                        the.name,
-                        the.fee
-                        )
-            self.load_patients()
-            QMessageBox.information(self, "Success", "Patient added successfully!")
-        else:
-            QMessageBox.warning(self, "Error", "Patient name is required!")
+    #             for the in ap.therapies:
+    #                 self.therapy_repo.add(appt_id, the.name, the.fee)
+
+    #         self.load_patients()
+    #         QMessageBox.information(self, "Success", "Patient added successfully!")
+    #     else:
+    #         QMessageBox.warning(self, "Error", "Patient name is required!")
+
+    def add_patient(self):
+        dialog = PatientDialog(self)
+        if not dialog.exec():
+            return
+        
+        try:
+            patient = Patient(**dialog.get_data())
+        except ValidationError as e:
+            QMessageBox.warning(self, "Validation Error", e.json(indent=2))
+            return
+
+        self.patient_service.add_patient(patient)
+        self.load_patients()
+        QMessageBox.information(self, "Success", "Patient added successfully!")
 
     def edit_patient(self):
         current_row = self.patient_page.table_widget.table.currentRow()
 
         if current_row < 0:
             QMessageBox.warning(self, "Warning", "Please select a patient to edit!")
+
             return
         print('current_row: ', current_row)
         item = self.patient_page.table_widget.table.item(current_row, 1)
@@ -200,6 +182,7 @@ class PatientManagementSystem(QMainWindow):
             QMessageBox.warning(self, "Error", "Invalid patient data!")
             return
 
+
         patient_id = int(item.text())
         print('paitent_id: ', patient_id)
         patient_data = [
@@ -207,33 +190,7 @@ class PatientManagementSystem(QMainWindow):
             for col in range(1, self.patient_page.table_widget.table.columnCount())
         ]
 
-        appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
-
-        fees_data = []
-
-        for appt in appointments:
-            ap = {
-                "appointment": appt[2],     
-                "consultation": appt[3],
-                "medicines": [],
-                "therapies": []
-            }
-
-            medicines = self.medicine_repo.get_medicine_by_appointment_id(appt[0])
-            for med in medicines:
-                ap["medicines"].append({
-                    "name": med[2],
-                    "fee": med[3]
-                })
-
-            therapies = self.therapy_repo.get_therapy_by_appointment_id(appt[0])
-            for th in therapies:
-                ap["therapies"].append({
-                    "name": th[2],
-                    "fee": th[3]
-                })
-
-            fees_data.append(ap)
+        fees_data = self.patient_service.get_fees_data(patient_id)
 
         dialog = PatientDialog(self, patient_data, fees_data)
 
@@ -241,9 +198,6 @@ class PatientManagementSystem(QMainWindow):
             return
 
         raw_data = dialog.get_data()
-        if not raw_data:
-            QMessageBox.warning(self, "Error", "Patient name is required!")
-            return
         
         try:
             patient = Patient(**raw_data)
@@ -255,97 +209,11 @@ class PatientManagementSystem(QMainWindow):
             )
             return
 
-
-        self.patient_repo.update(patient_id, patient)
-
-        # self.appointment_repo.delete_by_patient_id(patient_id)
-
-        for appt in patient.fees.data:
-            appt_id = self.appointment_repo.add(
-                patient_id,
-                appt.appointment,
-                appt.consultation
-            )
-
-            for med in appt.medicines:
-                self.medicine_repo.add(appt_id, med.name, med.fee)
-
-            for th in appt.therapies:
-                self.therapy_repo.add(appt_id, th.name, th.fee)
-
+        self.patient_service.update_patient(patient_id, patient)
+    
         self.load_patients()
         QMessageBox.information(self, "Success", "Patient updated successfully!")
 
-    # def edit_patient(self):
-    #     current_row = self.patient_page.table_widget.table.currentRow()
-    #     print('current row: ', current_row)
-    #     if current_row >= 0:
-    #         item = self.patient_page.table_widget.table.item(current_row, 0)
-    #         if item is None:
-    #             QMessageBox.warning(self, "Error", "Invalid patient data!")
-    #         print('item: ', item.text()) # type: ignore
-    #         patient_id = int(item.text()) # type: ignore
-    #         # patient_id = int(self.table.item(current_row, 0).text())
-    #         patient_data = [self.patient_page.table_widget.table.item(current_row, col).text()  # type: ignore
-    #                       for col in range(self.patient_page.table_widget.table.columnCount())]
-    #         print('patient_data: ', patient_data)
-    #         # fees data:  [{'appointment': 1, 'consultation': 500, 'medicines': [{'name': 'abc', 'fee': 100}, {'name': 'def', 'fee': 200}, {'name': 'ghi', 'fee': 300}], 'therapies': [{'name': 'Virechana', 'fee': 0}, {'name': 'Nasya', 'fee': 0}]}, {'appointment': 2, 'consultation': 250, 'medicines': [{'name': 'pqr', 'fee': 400}, {'name': 'stu', 'fee': 500}], 'therapies': [{'name': 'Vamana', 'fee': 0}, {'name': 'Virechana', 'fee': 0}, {'name': 'Basti', 'fee': 0}, {'name': 'Nasya', 'fee': 0}, {'name': 'Raktamokshana', 'fee': 0}]}]
-    #         appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
-    #         print('edit appointments: ', appointments)
-    #         fees_data = []
-            
-    #         for appt in appointments:
-    #             ap = { 
-    #             }
-    #             ap['consultation'] = appt[3]
-    #             ap['appointment'] = appt[2]
-    #             ap['medicines'] = []
-    #             ap['therapies'] = []
-    #             print('appttt: ',appt)
-    #             medicines = self.medicine_repo.get_medicine_by_appointment_id(appt[0])
-    #             for med in medicines:
-    #                 m = {
-    #                     'name': med[2],
-    #                     'fee': med[3]
-    #                 }
-    #                 ap['medicines'].append(m)
-    #             print('medicines: ', medicines)
-    #             therapies = self.therapy_repo.get_therapy_by_appointment_id(appt[0])
-    #             for th in therapies:
-    #                 t = {
-    #                     'name': th[2],
-    #                     'fee': th[3]
-    #                 }
-    #                 ap['therapies'].append(t)
-    #             print('therapies: ', therapies)
-    #             fees_data.append(ap)
-    #         print('feeeee data: ', fees_data)
-    #         dialog = PatientDialog(self, patient_data, fees_data)
-            
-    #         if dialog.exec():
-    #             data = dialog.get_data()
-    #             print('edited data: ', data)
-    #             if data:
-    #                 self.patient_repo.update(patient_id, data)
-    #                 if (data['fees']['data']) != 0:
-    #                     for appt in data['fees']['data']:
-    #                         # appointment_data = (
-    #                         #     patient_id,
-    #                         #     appt['appointment'],
-    #                         #     appt['consultation']
-    #                         # )
-    #                         appt_id = self.appointment_repo.add(patient_id, appt['appointment'], appt['consultation'])
-    #                         for medicine in appt['medicines']:
-    #                             self.medicine_repo.add(appt_id, medicine['name'], medicine['fee'])
-                            
-    #                         for therapy in appt['therapies']:
-    #                             self.therapy_repo.add(appt_id, therapy['name'], therapy['fee'])
-    #                 self.load_patients()
-    #                 QMessageBox.information(self, "Success", "Patient updated successfully!")
-    #             else:
-    #                 QMessageBox.warning(self, "Error", "Patient name is required!")
-    #     else:
-    #         QMessageBox.warning(self, "Warning", "Please select a patient to edit!")
     
     def delete_patient(self):
         current_row = self.patient_page.table_widget.table.currentRow()

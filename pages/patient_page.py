@@ -28,7 +28,7 @@ class PatientPage(QWidget):
             border-bottom: 1px solid #e5e7eb;
             background: qlineargradient(
                 x1:0, y1:0, x2:1, y2:0,
-                stop:0 #e0f2fe, stop:1 #f8fafc
+                stop:0 #2F6690, stop:1 #f8fafc
             );
             border-radius: 10px;
             border-bottom: 1px solid #cbd5f5;
