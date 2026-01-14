@@ -17,6 +17,7 @@ from patient_dialog import PatientDialog
 from config import config
 
 from PySide6.QtGui import QFont, QPainter, QColor, QPen
+from services.patient_search_service import PatientSearchService
 from watermark_widget import WatermarkWidget
 
 # from layouts.search_layout import SearchLayout
@@ -27,24 +28,29 @@ from pages.patient_page import PatientPage
 from pages.appointment_page import AppointmentPage
 
 from sidebar.sidebar import SideBar
-from database.connection import DatabaseConnection
-from database.schema import SchemaManager
+from database.SQLiteDB.connection import SQLiteConnection
+from database.SQLiteDB.schema import SchemaManager
 from create_directory_for_database import create_dir
-from database.patient_repo import PatientRepository
-from database.appointment_repo import AppointmentRepository
-from database.medicine_repo import MedicineRepository
-from database.therapy_repo import TherapyRepository
+from repositories.patient_repository import PatientRepository
+from repositories.appointment_repository import AppointmentRepository
+from repositories.medicine_repository import MedicineRepository
+from repositories.therapy_repository import TherapyRepository
+from button.custom_button import CustomButton
+from database.db_protocol import Database
+from database.SQLiteDB.sqlite_database import SQLiteDatabase
 
 class PatientManagementSystem(QMainWindow):
     def __init__(self):
         super().__init__()
         folder_name = create_dir()
-        self.conn = DatabaseConnection(f'C:\\ProgramData\\{folder_name}\\patients.db').get_connection()
-        SchemaManager(self.conn).create_tables()
-        self.patient_repo = PatientRepository(self.conn)
-        self.appointment_repo = AppointmentRepository(self.conn)
-        self.medicine_repo = MedicineRepository(self.conn)
-        self.therapy_repo = TherapyRepository(self.conn)
+        self.conn = SQLiteConnection(f'C:\\ProgramData\\{folder_name}\\patients.db').get_connection()
+        db = SQLiteDatabase(self.conn)
+        SchemaManager(db).create_tables()
+        
+        self.patient_repo = PatientRepository(db)
+        self.appointment_repo = AppointmentRepository(db)
+        self.medicine_repo = MedicineRepository(db)
+        self.therapy_repo = TherapyRepository(db)
         self.search_result_count = 0
         self.setWindowTitle(config['title'])
         self.btn_layout = ButtonsLayout()
@@ -122,11 +128,19 @@ class PatientManagementSystem(QMainWindow):
         self.patient_page.btn_layout.row_count_lable.setText(f"Total: {len(patients)}")
         self.populate_table(patients)
     
+    def view_history(self):
+        print('btn clicked')
+    
     def populate_table(self, patients):
         self.patient_page.table_widget.table.setRowCount(len(patients))
         for row, patient in enumerate(patients):
-            for col, value in enumerate(patient):
-                self.patient_page.table_widget.table.setItem(row, col, QTableWidgetItem(str(value) if value else ""))
+            view_history_btn = CustomButton("View", '#1D546D', margin='10px')
+            view_history_btn.clicked.connect(self.view_history)
+            self.patient_page.table_widget.table.setCellWidget(row, 0, view_history_btn)
+            for col, value in enumerate(patient, 1):
+                item = QTableWidgetItem(str(value) if value else "")
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.patient_page.table_widget.table.setItem(row, col, item)
     
     def add_patient(self):
         print('add button clicked')
@@ -179,17 +193,18 @@ class PatientManagementSystem(QMainWindow):
         if current_row < 0:
             QMessageBox.warning(self, "Warning", "Please select a patient to edit!")
             return
-
-        item = self.patient_page.table_widget.table.item(current_row, 0)
+        print('current_row: ', current_row)
+        item = self.patient_page.table_widget.table.item(current_row, 1)
+        print('itemmmmm: ', item)
         if item is None:
             QMessageBox.warning(self, "Error", "Invalid patient data!")
             return
 
         patient_id = int(item.text())
-
+        print('paitent_id: ', patient_id)
         patient_data = [
             self.patient_page.table_widget.table.item(current_row, col).text()
-            for col in range(self.patient_page.table_widget.table.columnCount())
+            for col in range(1, self.patient_page.table_widget.table.columnCount())
         ]
 
         appointments = self.appointment_repo.get_appointment_by_patient_id(patient_id)
@@ -335,8 +350,8 @@ class PatientManagementSystem(QMainWindow):
     def delete_patient(self):
         current_row = self.patient_page.table_widget.table.currentRow()
         if current_row >= 0:
-            patient_id = int(self.patient_page.table_widget.table.item(current_row, 0).text()) # type: ignore
-            patient_name = self.patient_page.table_widget.table.item(current_row, 1).text() # type: ignore
+            patient_id = int(self.patient_page.table_widget.table.item(current_row, 1).text()) # type: ignore
+            patient_name = self.patient_page.table_widget.table.item(current_row, 2).text() # type: ignore
             
             reply = QMessageBox.question(
                 self, "Confirm Delete",
@@ -356,7 +371,10 @@ class PatientManagementSystem(QMainWindow):
         value = self.patient_page.search_layout.search_input.text()
         
         if value:
-            patients = self.patient_repo.search_patients(criteria, value)
+            search_service = PatientSearchService()
+            query, params = search_service.build_query(criteria, value)
+            patients = self.patient_repo.execute_query(query, params)
+            # patients = self.patient_repo.search_patients(criteria, value)
             row_count = len(patients)
 
             self.populate_table(patients)

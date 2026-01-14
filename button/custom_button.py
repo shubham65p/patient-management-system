@@ -3,7 +3,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
 
 class CustomButton(QPushButton):
-    def __init__(self, text, color) -> None:
+    def __init__(self, text, color, margin = '2px') -> None:
         super().__init__(text)
         # self = QPushButton(text)
         def darken(color: str, factor: int) -> str:
@@ -21,6 +21,8 @@ class CustomButton(QPushButton):
                 padding: 8px 14px;
                 border-radius: 6px;
                 font-weight: 600;
+                margin: {margin};
+                font-size: 10px
             }}
             QPushButton:hover {{
                 background-color: {hover};
