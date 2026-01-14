@@ -1,13 +1,18 @@
 from PySide6.QtWidgets import (
     QDialog, QLineEdit, QSpinBox, QComboBox, QDateEdit, QTextEdit,
     QPushButton, QFormLayout, QVBoxLayout, QHBoxLayout, QGroupBox,
-    QLabel, QCheckBox, QGridLayout, QWidget
+    QLabel, QCheckBox, QGridLayout, QWidget, QMessageBox, QToolTip
 )
 from PySide6.QtCore import QDate
 from button.custom_button import CustomButton
 from charges.fees_dialog import FeesDialog
 from charges.fees_summary_widget import FeesSummaryWidget
 from PySide6.QtGui import QGuiApplication
+
+from PySide6.QtGui import QIntValidator
+from PySide6.QtGui import QRegularExpressionValidator
+from PySide6.QtCore import QRegularExpression
+
 
 
 class PatientDialog(QDialog):
@@ -23,6 +28,29 @@ class PatientDialog(QDialog):
         self.move_to_top()
         if patient_data:
             self.populate_data()
+
+    
+    def accept(self):
+        data = self.get_data()
+        phone = data["phone"]
+        name = data["name"]
+
+        if len(phone) < 10:
+            QMessageBox.warning(
+                self,
+                "Validation Error",
+                "Phone number should be of 10 digits"
+            )
+            return  # 🚫 dialog stays open
+        if len(name) < 1:
+             QMessageBox.warning(
+                self,
+                "Validation Error",
+                "Please enter name"
+            )
+             return
+
+        super().accept() 
         
         
     
@@ -52,6 +80,13 @@ class PatientDialog(QDialog):
         self.dob_input.setDisplayFormat("yyyy-MM-dd")
 
         self.phone_input = QLineEdit()
+        regex = QRegularExpression(r"\d{0,10}")
+        validator = QRegularExpressionValidator(regex, self)
+        self.phone_input.setValidator(validator)
+        self.phone_input.setMaxLength(10)
+        self.phone_input.setPlaceholderText("Only numbers allowed")
+
+
 
         patient_layout.addWidget(QLabel("Name"), 0, 0)
         patient_layout.addWidget(self.name_input, 0, 1)

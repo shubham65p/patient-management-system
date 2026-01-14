@@ -28,10 +28,10 @@ class SideBar(QWidget):
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #3498db;
+                background-color: #2F6690;
             }
             QPushButton:checked {
-                background-color: #2980b9;
+                background-color: #2F6690;
             }
         """)
 

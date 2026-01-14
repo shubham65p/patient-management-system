@@ -20,10 +20,10 @@ class SearchLayout:
         
         self.layout.addWidget(self.search_input)
 
-        self.search_btn = CustomButton("Search", "#5F9598")
+        self.search_btn = CustomButton("Search", "#2F6690")
         self.layout.addWidget(self.search_btn)
 
-        self.clear_btn = CustomButton("Show All", "#5F9598")
+        self.clear_btn = CustomButton("Show All", "#2F6690")
         self.layout.addWidget(self.clear_btn)
 
 
