@@ -52,8 +52,6 @@ class PatientDialog(QDialog):
 
         super().accept() 
         
-        
-    
     def move_to_top(self):
         screen = QGuiApplication.primaryScreen().availableGeometry()
         x = (screen.width() - self.width()) // 2

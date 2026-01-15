@@ -12,9 +12,12 @@ from PySide6.QtGui import QFont
 from pydantic import ValidationError
 
 from data_validation import Patient
+from pages.login_page import LoginPage
 from patient_dialog import PatientDialog
 from config import config
 
+from repositories.user_repository import UserRepository
+from services.auth_service import AuthService
 from services.patient_search_service import PatientSearchService
 from watermark_widget import WatermarkWidget
 
@@ -250,10 +253,27 @@ class PatientManagementSystem(QMainWindow):
         else:
             self.load_patients()
 
+# def main():
+#     app = QApplication(sys.argv)
+#     window = PatientManagementSystem()
+#     window.showMaximized()
+#     sys.exit(app.exec())
+
 def main():
     app = QApplication(sys.argv)
-    window = PatientManagementSystem()
-    window.showMaximized()
+    db = create_database()
+    user_repo = UserRepository(db)
+    auth_service = AuthService(user_repo)
+
+    login_page = LoginPage(auth_service)
+
+    def on_login_success(user_data):
+        window = PatientManagementSystem()
+        window.showMaximized()
+
+    login_page.login_success.connect(on_login_success)
+    login_page.show()
+
     sys.exit(app.exec())
 
 if __name__ == "__main__":

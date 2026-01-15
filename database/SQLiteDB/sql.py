@@ -43,3 +43,14 @@ CREATE TABLE IF NOT EXISTS therapies (
     FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
 )
 """
+USERS_TABLE = """
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'staff',
+    is_active BOOLEAN DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+"""

@@ -4,6 +4,7 @@ from database.SQLiteDB.sql import (
     APPOINTMENTS_TABLE,
     MEDICINES_TABLE,
     THERAPIES_TABLE,
+    USERS_TABLE
 )
 
 class SchemaManager:
@@ -12,6 +13,7 @@ class SchemaManager:
 
     def create_tables(self) -> None:
         for statement in (
+            USERS_TABLE,
             PATIENTS_TABLE,
             APPOINTMENTS_TABLE,
             MEDICINES_TABLE,

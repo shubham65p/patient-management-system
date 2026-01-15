@@ -27,11 +27,3 @@ class Patient(BaseModel):
     total_followups: int = Field(0, ge=0)
     major_complain: Optional[str] = None
     fees : Fee
-
-    @field_validator("gender")
-    def validate_gender(cls, v):
-        if v not in ("Male", "Female", "Other"):
-            raise ValueError("Invalid gender")
-        return v
-
-#

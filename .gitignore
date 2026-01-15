@@ -3,4 +3,5 @@ dist
 build
 app.spec
 __pycache__
+venv
 env
